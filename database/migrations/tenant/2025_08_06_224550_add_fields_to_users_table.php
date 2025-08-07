@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('address')->nullable()->after('phone');
             $table->boolean('status')->default(true)->after('address');
             $table->string('image_path')->nullable()->after('status');
-            $table->foreignId('role_id')->nullable()->constrained('roles')->onDelete('restrict')->after('image_path');
+            $table->foreignId('role_id')->constrained('roles')->onDelete('restrict')->after('image_path');
         });
     }
 

@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         //
         $middleware->prepend(ForceJsonResponse::class);
+            $middleware->alias([
+                'check.feature' => \App\Http\Middleware\CheckFeaturePermission::class,
+            ]);
 
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -46,7 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return response()->json([
                 'status' => false,
                 'message' => $e->getMessage(), // You can customize this
-            ], method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500
+            ], 500
             );
     });
     })->create();

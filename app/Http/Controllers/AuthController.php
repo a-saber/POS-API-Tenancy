@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Tenant;
 use App\Models\User;
-use Stancl\Tenancy\TenantManager;
 use Illuminate\Support\Str;
 use Stancl\Tenancy\Database\Models\Domain;
 use App\Models\CentralUser;
+use App\Models\Role;
+use App\Models\Branch;
 
 class AuthController extends Controller
 {
@@ -63,13 +64,42 @@ class AuthController extends Controller
 
             // ✅ Step 4: Run logic inside tenant
             $tenant->run(function () use ($request, $centralUser) {
-                // Create first user in tenant DB
-                User::create([
+
+                $role = Role::create([
+                    'name' => 'admin',
+                    'description' => 'Administrator role with full access',
+                    'sales' => true,
+                    'purchase' => true,
+                    'users' => true,
+                    'roles' => true,
+                    'settings' => true,
+                    'categories' => true,
+                    'products' => true,
+                    'units' => true,
+                    'branches' => true,
+                    'customers' => true,
+                    'expense_categories' => true,
+                    'expenses' => true,
+                    'purchase_return' => true,
+                    'sale_return' => true,
+                    'suppliers' => true,
+                    'taxes' => true,
+                    'discounts' => true,
+                ]);
+
+                $branch = Branch::create([
+                    'name' => 'Main Branch',
+                ]);
+                $roleId = $role->id;
+                $branchId = $branch->id;
+                $user = User::create([
                     'name'     => $request->name,
                     'email'    => $request->email,
                     'password' => Hash::make($request->password),
                     'central_user_id' => $centralUser->id,
+                    'role_id' => $roleId,
                 ]);
+                $user->branches()->sync([$branchId]);
             });
 
             DB::commit();
@@ -118,7 +148,8 @@ class AuthController extends Controller
             tenancy()->initialize($centralUser->tenant_id);
 
             // Step 3: Find user in tenant DB
-            $tenantUser = User::where('email', $request->email)->first();
+            $tenantUser = User::with(['role', 'branches'])->
+            where('email', $request->email)->first();
 
             if (! $tenantUser ) {
                 return response()->json([
@@ -144,13 +175,7 @@ class AuthController extends Controller
                 'user' => $tenantUser,
                 'domain' => $centralUser->tenant->domains->first()->domain,
             ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Throwable $e) {
+        }  catch (\Exception $e) {
             return response()->json([
                 'status' => false,
                 'message' => $e->getMessage(),
